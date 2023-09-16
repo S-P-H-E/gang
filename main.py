@@ -1,6 +1,16 @@
+import os
 import discord
 import openai
 from discord.ext import commands
+from dotenv import load_dotenv
+from flask import Flask, render_template_string
+
+# Load environment variables from .env.local
+load_dotenv(".env.local")
+
+# Retrieve API keys from environment variables
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 intents = discord.Intents.default()  # Enable default intents
 intents.typing = False  # You can adjust intents based on your bot's functionality
@@ -9,7 +19,14 @@ intents.typing = False  # You can adjust intents based on your bot's functionali
 bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Configure OpenAI
-openai.api_key = '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'
+openai.api_key = OPENAI_API_KEY
+
+# Set up Flask app
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return render_template_string("Logged in as {{ bot_name }}", bot_name=bot.user.name)
 
 @bot.event
 async def on_ready():
@@ -42,7 +59,5 @@ def generate_openai_response(question):
     )
     return response.choices[0].text.strip()
 
-bot.run('MTE0NTA3NzI1NzE1Nzc1MDgwNA.GWpp-q.C0sHgnM0JQOnSFEdmVzX__MtzgZuD4Btf8-tIw')
-
-#DISCORD: MTE0NTA3NzI1NzE1Nzc1MDgwNA.GWpp-q.C0sHgnM0JQOnSFEdmVzX__MtzgZuD4Btf8-tIw
-#OPENAI: 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
+if __name__ == "__main__":
+    bot.run(DISCORD_TOKEN)
