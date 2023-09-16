@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template_string
 
 # Load environment variables from .env.local
-load_dotenv(".env.local")
+load_dotenv("../.env.local")
 
 # Retrieve API keys from environment variables
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
