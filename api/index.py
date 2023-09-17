@@ -53,7 +53,7 @@ def generate_openai_response(question):
     prompt = f"Question: {question}\nAnswer:"
     try:
         response = openai.Completion.create(
-            engine="text-davinci-003",  # Choose the OpenAI engine you prefer
+            engine="gpt-3.5-turbo-16k-0613",  # Choose the OpenAI engine you prefer
             prompt=prompt,
             max_tokens=50  # Adjust the response length as needed
         )
