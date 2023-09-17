@@ -21,20 +21,9 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 # Configure OpenAI
 openai.api_key = OPENAI_API_KEY
 
-
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
-
-class handler(BaseHTTPRequestHandler):
-
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        response_message = f'Logged in as {bot.user.name}'.encode('utf-8')
-        self.wfile.write(response_message)
-        return
 
 @bot.event
 async def on_message(message):
@@ -43,24 +32,33 @@ async def on_message(message):
 
     if isinstance(message.channel, discord.DMChannel):
         question = message.content
-        response = generate_openai_response(question)
-        await message.author.send(response)
+        try:
+            response = generate_openai_response(question)
+            await message.author.send(response)
+        except Exception as e:
+            await message.author.send(f"An error occurred: {str(e)}")
     elif isinstance(message.channel, discord.TextChannel):
         if message.content.startswith('!ask'):
             question = message.content[5:]  # Remove the !ask part
-            response = generate_openai_response(question)
-            code_response = f'``` {response} ```'
-            await message.channel.send(code_response)
+            try:
+                response = generate_openai_response(question)
+                code_response = f'``` {response} ```'
+                await message.channel.send(code_response)
+            except Exception as e:
+                await message.channel.send(f"An error occurred: {str(e)}")
 
     await bot.process_commands(message)
 
 def generate_openai_response(question):
     prompt = f"Question: {question}\nAnswer:"
-    response = openai.Completion.create(
-        engine="text-davinci-003",  # Choose the OpenAI engine you prefer
-        prompt=prompt,
-        max_tokens=50  # Adjust the response length as needed
-    )
-    return response.choices[0].text.strip()
+    try:
+        response = openai.Completion.create(
+            engine="text-davinci-003",  # Choose the OpenAI engine you prefer
+            prompt=prompt,
+            max_tokens=50  # Adjust the response length as needed
+        )
+        return response.choices[0].text.strip()
+    except Exception as e:
+        return f"An error occurred while generating the response: {str(e)}"
 
 bot.run(DISCORD_TOKEN)
