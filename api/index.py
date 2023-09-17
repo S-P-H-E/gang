@@ -1,16 +1,16 @@
-from http.server import BaseHTTPRequestHandler
 import os
 import discord
-import openai
 from discord.ext import commands
 from dotenv import load_dotenv
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
 
 # Load environment variables from .env.local
 load_dotenv(".env.local")
 
 # Retrieve API keys from environment variables
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+HTTP_SERVER_PORT = int(os.getenv("HTTP_SERVER_PORT"))
 
 intents = discord.Intents.default()  # Enable default intents
 intents.typing = False  # You can adjust intents based on your bot's functionality
@@ -18,47 +18,29 @@ intents.typing = False  # You can adjust intents based on your bot's functionali
 # Set up the Discord bot
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-# Configure OpenAI
-openai.api_key = OPENAI_API_KEY
-
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user.name}')
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
+@bot.command(name='hello')
+async def hello(ctx):
+    # Respond with "hello" when the "!hello" command is invoked
+    await ctx.send('hello')
 
-    if isinstance(message.channel, discord.DMChannel):
-        question = message.content
-        try:
-            response = generate_openai_response(question)
-            await message.author.send(response)
-        except Exception as e:
-            await message.author.send(f"An error occurred: {str(e)}")
-    elif isinstance(message.channel, discord.TextChannel):
-        if message.content.startswith('!ask'):
-            question = message.content[5:]  # Remove the !ask part
-            try:
-                response = generate_openai_response(question)
-                code_response = f'``` {response} ```'
-                await message.channel.send(code_response)
-            except Exception as e:
-                await message.channel.send(f"An error occurred: {str(e)}")
+class HTTPServerHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write('Hello, world!'.encode('utf-8'))
 
-    await bot.process_commands(message)
+def start_http_server():
+    server = HTTPServer(('0.0.0.0', HTTP_SERVER_PORT), HTTPServerHandler)
+    server.serve_forever()
 
-def generate_openai_response(question):
-    prompt = f"Question: {question}\nAnswer:"
-    try:
-        response = openai.Completion.create(
-            engine="gpt-3.5-turbo-16k-0613",  # Choose the OpenAI engine you prefer
-            prompt=prompt,
-            max_tokens=50  # Adjust the response length as needed
-        )
-        return response.choices[0].text.strip()
-    except Exception as e:
-        return f"An error occurred while generating the response: {str(e)}"
+# Start the HTTP server in a separate thread
+http_server_thread = threading.Thread(target=start_http_server)
+http_server_thread.daemon = True  # This will allow the thread to exit when the main program exits
+http_server_thread.start()
 
 bot.run(DISCORD_TOKEN)
